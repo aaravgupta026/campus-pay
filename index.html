@@ -18,7 +18,11 @@
             <div class="stat-label">Total Spent Overall</div>
             <div class="stat-value" id="totalSpent">₹0</div>
         </div>
-        <button class="clear-btn" onclick="clearHistory()">Reset All</button>
+        <div class="dashboard-actions">
+            <button class="action-btn" onclick="exportExpensesCSV()">Export</button>
+            <button class="action-btn" onclick="shareExpensesReport()">Share</button>
+            <button class="clear-btn" onclick="clearHistory()">Reset All</button>
+        </div>
     </div>
 
     <div id="shopsContainer"></div>

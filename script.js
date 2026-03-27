@@ -190,4 +190,85 @@ function clearHistory() {
     }
 }
 
+function getExpenseHistory() {
+    return JSON.parse(localStorage.getItem('campusExpenses')) || [];
+}
+
+function buildExpensesCSV(history) {
+    const rows = [["Shop", "Amount", "Time"]];
+    history.forEach(item => {
+        rows.push([item.shop, item.amt, item.time]);
+    });
+
+    return rows
+        .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+}
+
+function exportExpensesCSV() {
+    const history = getExpenseHistory();
+    if (!history.length) {
+        alert("No expenses to export yet.");
+        return;
+    }
+
+    const csv = buildExpensesCSV(history);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const today = new Date().toISOString().slice(0, 10);
+
+    link.href = url;
+    link.download = `campus-pay-expenses-${today}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+async function shareExpensesReport() {
+    const history = getExpenseHistory();
+    if (!history.length) {
+        alert("No expenses to share yet.");
+        return;
+    }
+
+    const total = history.reduce((sum, item) => sum + parseFloat(item.amt || 0), 0);
+    const top5 = history.slice(0, 5)
+        .map(item => `- ${item.shop}: INR ${item.amt} (${item.time})`)
+        .join("\n");
+
+    const report = [
+        "Campus Pay Expense Report",
+        `Total Spent: INR ${total.toFixed(2)}`,
+        "",
+        "Recent spends:",
+        top5
+    ].join("\n");
+
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: "Campus Pay Expense Report",
+                text: report
+            });
+            return;
+        } catch (e) {
+            // Ignore cancel/share errors and fall back to clipboard.
+        }
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+            await navigator.clipboard.writeText(report);
+            alert("Report copied. Paste it into WhatsApp or email.");
+            return;
+        } catch (e) {
+            // Fall through to prompt fallback.
+        }
+    }
+
+    window.prompt("Copy and share this report:", report);
+}
+
 initApp();

@@ -5,6 +5,8 @@ h1 { color: #03dac6; margin-top: 5px; margin-bottom: 5px; font-size: 24px; }
 .dashboard { background: #1e1e1e; padding: 12px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
 .stat-label { color: #aaa; font-size: 12px; }
 .stat-value { color: #bb86fc; font-size: 20px; font-weight: bold; }
+.dashboard-actions { display: flex; gap: 6px; align-items: center; }
+.action-btn { background: none; border: 1px solid #03dac6; color: #03dac6; padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; }
 .clear-btn { background: none; border: 1px solid #ff5252; color: #ff5252; padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; }
 
 .shop-card { background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #333; }
