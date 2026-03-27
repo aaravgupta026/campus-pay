@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Campus Pay V5</title>
     <meta name="theme-color" content="#121212">
-    <link rel="icon" type="image/svg+xml" href="assets/campus-pay-icon.svg">
-    <link rel="shortcut icon" href="assets/campus-pay-icon.svg">
+    <link rel="icon" type="image/svg+xml" href="assets/campus-pay-brand.svg">
+    <link rel="shortcut icon" href="assets/campus-pay-brand.svg">
+    <link rel="apple-touch-icon" href="assets/campus-pay-brand.svg">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -14,7 +15,10 @@
 </head>
 <body>
 
-    <h1>⚡ Campus Pay</h1>
+    <div class="brand-row">
+        <img src="assets/campus-pay-brand.svg" alt="Campus Pay Logo" class="brand-logo">
+        <h1>Campus Pay</h1>
+    </div>
     <div class="subtitle">Smart Suggestions & Dynamic IDs</div>
 
     <div class="auth-card">
@@ -29,6 +33,7 @@
             <div class="auth-user auth-uid">UID: <span id="userUid">-</span></div>
             <button class="clear-btn" onclick="signOutUser()">Sign out</button>
         </div>
+        <div id="authHint" class="auth-hint"></div>
     </div>
 
     <div class="dashboard">
@@ -40,6 +45,23 @@
             <button class="action-btn" onclick="exportExpensesCSV()">Export</button>
             <button class="action-btn" onclick="shareExpensesReport()">Share</button>
             <button class="clear-btn" onclick="clearHistory()">Reset All</button>
+        </div>
+    </div>
+
+    <div class="analytics-card">
+        <div class="analytics-row">
+            <label for="monthSelect" class="stat-label">Month</label>
+            <select id="monthSelect" class="month-select"></select>
+        </div>
+        <div class="analytics-grid">
+            <div class="analytics-item">
+                <div class="stat-label">Selected Month</div>
+                <div class="stat-value" id="monthSpent">₹0</div>
+            </div>
+            <div class="analytics-item">
+                <div class="stat-label">Current Year</div>
+                <div class="stat-value" id="yearSpent">₹0</div>
+            </div>
         </div>
     </div>
 

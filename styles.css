@@ -1,4 +1,6 @@
 body { font-family: -apple-system, sans-serif; background-color: #121212; color: #fff; padding: 12px; margin: 0; padding-bottom: 30px; }
+.brand-row { display: flex; align-items: center; gap: 10px; }
+.brand-logo { width: 34px; height: 34px; border-radius: 8px; border: 1px solid #2f2f2f; }
 h1 { color: #03dac6; margin-top: 5px; margin-bottom: 5px; font-size: 24px; }
 .subtitle { color: #888; font-size: 12px; margin-bottom: 15px; }
 
@@ -6,6 +8,7 @@ h1 { color: #03dac6; margin-top: 5px; margin-bottom: 5px; font-size: 24px; }
 .auth-title { color: #ccc; font-size: 12px; margin-bottom: 8px; }
 .auth-user { color: #bdbdbd; font-size: 12px; margin-bottom: 4px; word-break: break-all; }
 .auth-uid { color: #8f8f8f; }
+.auth-hint { margin-top: 8px; color: #ffcc80; font-size: 11px; line-height: 1.4; }
 
 .dashboard { background: #1e1e1e; padding: 12px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
 .stat-label { color: #aaa; font-size: 12px; }
@@ -14,6 +17,12 @@ h1 { color: #03dac6; margin-top: 5px; margin-bottom: 5px; font-size: 24px; }
 .action-btn { background: none; border: 1px solid #03dac6; color: #03dac6; padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; }
 .clear-btn { background: none; border: 1px solid #ff5252; color: #ff5252; padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; }
 
+.analytics-card { background: #1e1e1e; padding: 12px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; }
+.analytics-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.month-select { background: #2a2a2a; color: #f0f0f0; border: 1px solid #3a3a3a; border-radius: 6px; padding: 5px 8px; font-size: 12px; }
+.analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.analytics-item { background: #222; border: 1px solid #323232; border-radius: 8px; padding: 8px; }
+
 .shop-card { background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #333; }
 .shop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 16px; font-weight: bold; }
 .shop-sub-header { display: flex; justify-content: space-between; font-size: 12px; color: #aaa; margin-bottom: 10px; }
@@ -21,6 +30,10 @@ h1 { color: #03dac6; margin-top: 5px; margin-bottom: 5px; font-size: 24px; }
 .badge-group { display: flex; align-items: center; gap: 8px; }
 .app-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #333; color: #ddd; }
 .icon-btn { background: none; border: none; font-size: 16px; padding: 0; cursor: pointer; opacity: 0.8; }
+.shop-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.shop-select { background: #282828; color: #ddd; border: 1px solid #3a3a3a; border-radius: 6px; padding: 6px; font-size: 12px; flex: 1; }
+.tiny-btn { background: none; border: 1px solid #4d4d4d; color: #bbb; padding: 5px 8px; border-radius: 6px; font-size: 11px; cursor: pointer; }
+.warn-btn { border-color: #dba34d; color: #dba34d; }
 
 .amt-row { display: flex; gap: 8px; }
 .amt-btn { flex: 1; background: #2a2a2a; color: white; border: none; padding: 10px 0; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.1s; }
@@ -36,3 +49,8 @@ h1 { color: #03dac6; margin-top: 5px; margin-bottom: 5px; font-size: 24px; }
 #scanner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
 #reader { width: 300px; border-radius: 10px; overflow: hidden; background: #000; }
 .close-scanner { margin-top: 20px; padding: 10px 20px; background: #ff5252; color: white; border: none; border-radius: 8px; }
+
+@media (max-width: 640px) {
+	.dashboard { flex-direction: column; align-items: flex-start; gap: 10px; }
+	.analytics-grid { grid-template-columns: 1fr; }
+}
