@@ -14,10 +14,12 @@ h1 { color: #03dac6; margin-top: 5px; margin-bottom: 5px; font-size: 24px; }
 .auth-user { color: #bdbdbd; font-size: 12px; margin-bottom: 4px; word-break: break-all; }
 .auth-uid { color: #8f8f8f; }
 .auth-hint { margin-top: 8px; color: #ffcc80; font-size: 11px; line-height: 1.4; }
+.auth-link { display: inline-block; color: #8ad7ff; font-size: 12px; margin-bottom: 8px; text-decoration: none; }
 .auth-divider { color: #8f8f8f; font-size: 11px; margin: 10px 0 8px; }
 .auth-form-row { margin-bottom: 8px; }
 .auth-input { width: 100%; box-sizing: border-box; background: #222; border: 1px solid #3a3a3a; border-radius: 6px; color: #eee; padding: 8px; font-size: 12px; }
 .auth-form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.feedback-text { min-height: 72px; resize: vertical; }
 
 .dashboard { background: #1e1e1e; padding: 12px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
 .stat-label { color: #aaa; font-size: 12px; }

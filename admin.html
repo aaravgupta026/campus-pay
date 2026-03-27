@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Pay Admin</title>
+    <link rel="icon" type="image/svg+xml" href="assets/campus-pay-brand.svg">
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="brand-row">
+        <img src="assets/campus-pay-brand.svg" alt="Campus Pay Logo" class="brand-logo">
+        <h1>Campus Pay Admin</h1>
+    </div>
+    <div class="subtitle">Manage shared shop list and review feedback</div>
+
+    <div class="auth-card">
+        <div id="adminAuthStatus" class="auth-title">Checking admin access...</div>
+    </div>
+
+    <div class="auth-card">
+        <div class="auth-title">Add Shop to Shared Catalog</div>
+        <div class="auth-form-row"><input id="admName" class="auth-input" placeholder="Shop name"></div>
+        <div class="auth-form-row"><input id="admUpi" class="auth-input" placeholder="UPI ID"></div>
+        <div class="auth-form-row"><input id="admApp" class="auth-input" placeholder="Default app key (phonepe/gpay/paytm/navi)"></div>
+        <div class="auth-form-row"><input id="admAmounts" class="auth-input" placeholder="Default amounts, comma separated e.g. 10,20,30"></div>
+        <div class="auth-form-actions">
+            <button class="action-btn" onclick="addCatalogShop()">Add Catalog Shop</button>
+        </div>
+    </div>
+
+    <div class="auth-card">
+        <div class="auth-title">Shared Catalog Shops</div>
+        <div id="catalogList"></div>
+    </div>
+
+    <div class="auth-card">
+        <div class="auth-title">Recent Feedback</div>
+        <div id="feedbackList"></div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

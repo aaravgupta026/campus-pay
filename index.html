@@ -31,6 +31,7 @@
 
     <div class="payment-section">
         <div class="section-title">Pay at Shop</div>
+        <div class="auth-user" id="shopCountLabel">Total shops: 0</div>
         <div id="shopsContainer"></div>
         <button class="add-shop-btn" onclick="openScanner('NEW_SHOP')">Add New Shop</button>
     </div>
@@ -55,10 +56,21 @@
             <div class="auth-title">Signed in</div>
             <div class="auth-user"><strong id="userName">User</strong></div>
             <div class="auth-user" id="userEmail">-</div>
-            <div class="auth-user auth-uid">UID: <span id="userUid">-</span></div>
+            <a id="adminPageLink" class="auth-link" href="admin.html" style="display:none;">Open Admin Page</a>
             <button class="clear-btn" onclick="signOutUser()">Sign out</button>
         </div>
         <div id="authHint" class="auth-hint"></div>
+    </div>
+
+    <div class="auth-card">
+        <div class="auth-title">Your Profile</div>
+        <div class="auth-form-row"><input id="profileName" class="auth-input" type="text" placeholder="User name"></div>
+        <div class="auth-form-row"><input id="profileCity" class="auth-input" type="text" placeholder="City"></div>
+        <div class="auth-form-row"><input id="profileState" class="auth-input" type="text" placeholder="State"></div>
+        <div class="auth-form-row"><input id="profileCountry" class="auth-input" type="text" placeholder="Country"></div>
+        <div class="auth-form-actions">
+            <button class="action-btn" onclick="saveUserProfile()" type="button">Save Profile</button>
+        </div>
     </div>
 
     <div class="dashboard">
@@ -97,6 +109,34 @@
     <div class="history-list">
         <div style="color: #03dac6; margin-bottom: 8px; font-weight: bold; font-size: 14px;">Recent Spends</div>
         <div id="historyContainer"></div>
+    </div>
+
+    <div class="auth-card">
+        <div class="auth-title">Feedback</div>
+        <div class="auth-form-row">
+            <textarea id="feedbackChanges" class="auth-input feedback-text" placeholder="What changes should we do?"></textarea>
+        </div>
+        <div class="auth-form-row">
+            <select id="feedbackRating" class="auth-input">
+                <option value="">How much rating would you give?</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Good</option>
+                <option value="3">3 - Average</option>
+                <option value="2">2 - Needs Improvement</option>
+                <option value="1">1 - Poor</option>
+            </select>
+        </div>
+        <div class="auth-form-row">
+            <select id="feedbackRecommend" class="auth-input">
+                <option value="">Would you recommend it to friends?</option>
+                <option value="Yes">Yes</option>
+                <option value="Maybe">Maybe</option>
+                <option value="No">No</option>
+            </select>
+        </div>
+        <div class="auth-form-actions">
+            <button class="action-btn" onclick="submitFeedback()" type="button">Submit Feedback</button>
+        </div>
     </div>
 
     <div id="scanner-modal">

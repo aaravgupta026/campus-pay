@@ -23,6 +23,8 @@ const defaultShopConfig = [
     { id: "amul", name: "Amul", defaultUpi: "vyapar.171649456201@hdfcbank", defaultApp: "phonepe", defaultAmts: [15, 25, 40] }
 ];
 
+const DEFAULT_SHOP_IDS = new Set(defaultShopConfig.map(s => s.id));
+
 let activeScanMode = null;
 let html5QrCode = null;
 let firebaseAuth = null;
@@ -30,13 +32,19 @@ let firebaseDb = null;
 let currentUser = null;
 let userLocation = null;
 let cloudSyncInProgress = false;
+let sharedCatalogShops = [];
 
 function initApp() {
     bindEvents();
     initFirebase();
+    loadSharedCatalogFromCache();
     renderShops();
     updateDashboard();
     renderAnalytics();
+}
+
+function loadSharedCatalogFromCache() {
+    sharedCatalogShops = JSON.parse(localStorage.getItem("sharedCatalogShops")) || [];
 }
 
 function bindEvents() {
@@ -51,6 +59,8 @@ function bindEvents() {
 
     const monthSelect = document.getElementById("monthSelect");
     if (monthSelect) monthSelect.addEventListener("change", updateAnalyticsFromSelection);
+
+    loadUserProfile();
 }
 
 function setAuthHint(msg) {
@@ -182,13 +192,27 @@ async function handleAuthStateChange(user) {
     updateAuthUI(currentUser);
 
     if (!currentUser || !firebaseDb) {
+        loadUserProfile();
         return;
     }
 
     setAuthHint("");
 
+    await loadSharedCatalogShops();
     await syncLocalExpensesToCloud();
     await loadCloudExpenses();
+}
+
+async function loadSharedCatalogShops() {
+    if (!firebaseDb) return;
+    try {
+        const snap = await firebaseDb.collection("catalogShops").orderBy("createdAt", "desc").limit(200).get();
+        sharedCatalogShops = snap.docs.map(d => d.data());
+        localStorage.setItem("sharedCatalogShops", JSON.stringify(sharedCatalogShops));
+        renderShops();
+    } catch (err) {
+        console.log("Catalog load skipped", err?.code || err);
+    }
 }
 
 function updateAuthUI(user) {
@@ -202,14 +226,23 @@ function updateAuthUI(user) {
         loggedOutView.style.display = "block";
         loggedInView.style.display = "none";
         if (helloBanner) helloBanner.textContent = "Hello, User";
+        const adminLink = document.getElementById("adminPageLink");
+        if (adminLink) adminLink.style.display = "none";
         return;
     }
 
-    const displayName = user.displayName || "User";
+    const profile = getUserProfile();
+    const fallbackFromEmail = (user.email || "user").split("@")[0];
+    const displayName = profile.name || user.displayName || fallbackFromEmail || "User";
     document.getElementById("userName").textContent = displayName;
     document.getElementById("userEmail").textContent = user.email || "No email";
-    document.getElementById("userUid").textContent = user.uid || "-";
     if (helloBanner) helloBanner.textContent = `Hello, ${displayName.split(" ")[0]}`;
+
+    const adminLink = document.getElementById("adminPageLink");
+    const adminEmails = window.adminEmails || [];
+    if (adminLink) {
+        adminLink.style.display = adminEmails.includes(String(user.email || "").toLowerCase()) ? "inline-block" : "none";
+    }
 
     loggedOutView.style.display = "none";
     loggedInView.style.display = "block";
@@ -259,8 +292,33 @@ function setExpenseHistory(history) {
 }
 
 function getAllShops() {
+    const deletedDefaultShops = JSON.parse(localStorage.getItem("deletedDefaultShops")) || [];
     const userAddedShops = JSON.parse(localStorage.getItem("userAddedShops")) || [];
-    return [...defaultShopConfig, ...userAddedShops];
+    const activeDefaults = defaultShopConfig.filter(s => !deletedDefaultShops.includes(s.id));
+
+    const normalizedCatalog = sharedCatalogShops.map(shop => ({
+        id: shop.id,
+        name: shop.name,
+        defaultUpi: shop.defaultUpi,
+        defaultApp: shop.defaultApp || "phonepe",
+        defaultAmts: Array.isArray(shop.defaultAmts) && shop.defaultAmts.length ? shop.defaultAmts : [10, 20, 30]
+    }));
+
+    const merged = [...activeDefaults, ...normalizedCatalog, ...userAddedShops];
+    const unique = [];
+    const seen = new Set();
+    merged.forEach(shop => {
+        if (seen.has(shop.id)) return;
+        seen.add(shop.id);
+        unique.push(shop);
+    });
+    return unique;
+}
+
+function updateShopCountLabel() {
+    const label = document.getElementById("shopCountLabel");
+    if (!label) return;
+    label.textContent = `Total shops: ${getAllShops().length}`;
 }
 
 function getShopById(shopId) {
@@ -371,6 +429,8 @@ function renderShops() {
     const allShops = sortShopsForDisplay(getAllShops());
     const reports = getInvalidReports();
 
+    updateShopCountLabel();
+
     allShops.forEach(shop => {
         const currentUpi = getUpiId(shop.id, shop.defaultUpi);
         const stats = getShopStats(shop.name, shop.defaultAmts);
@@ -391,9 +451,8 @@ function renderShops() {
                 ${shop.name}
                 <div class="badge-group">
                     <span class="app-badge">${UPI_APPS[selectedApp].label}</span>
-                    ${isCustom
-                        ? `<button class="icon-btn" onclick="deleteShop('${shop.id}')" style="color:#ff5252;" title="Delete Shop">🗑️</button>`
-                        : `<button class="icon-btn" onclick="openScanner('${shop.id}')" title="Update QR">📷</button>`}
+                    <button class="icon-btn" onclick="openScanner('${shop.id}')" title="Update QR">📷</button>
+                    <button class="icon-btn" onclick="deleteShop('${shop.id}')" style="color:#ff5252;" title="Delete Shop">🗑️</button>
                 </div>
             </div>
             <div class="shop-sub-header">
@@ -451,12 +510,6 @@ function pay(shopId, amount) {
     const expense = makeExpenseItem(shop.name, numericAmount, appKey);
     saveExpense(expense);
 
-    // For generic UPI handlers, Android may show a chooser or open-with prompt.
-    if (appMeta.generic && localStorage.getItem("genericUpiTipSeen") !== "1") {
-        alert("This app uses generic UPI open. Android may ask once or twice to choose/open the UPI app. This is expected behavior.");
-        localStorage.setItem("genericUpiTipSeen", "1");
-    }
-
     const url = `${appMeta.prefix}?pa=${upiId}&pn=${encodeURIComponent(shop.name)}&am=${numericAmount}&cu=INR`;
     setTimeout(() => { window.location.href = url; }, 100);
 }
@@ -501,7 +554,6 @@ async function saveExpenseToCloud(expenseItem) {
             .set(payload, { merge: true });
     } catch (err) {
         console.error("Cloud save failed:", err);
-        setAuthHint(`Cloud save failed: ${err.code || "unknown"}`);
     }
 }
 
@@ -528,7 +580,6 @@ async function syncLocalExpensesToCloud() {
         }
     } catch (err) {
         console.error("Cloud sync failed:", err);
-        setAuthHint(`Cloud sync failed: ${err.code || "unknown"}`);
     } finally {
         cloudSyncInProgress = false;
     }
@@ -565,7 +616,6 @@ async function loadCloudExpenses() {
         renderAnalytics();
     } catch (err) {
         console.error("Cloud load failed:", err);
-        setAuthHint("Signed in, but cloud fetch failed. Check Firestore rules/index.");
     }
 }
 
@@ -633,10 +683,18 @@ function closeScanner() {
 window.closeScanner = closeScanner;
 
 function deleteShop(shopId) {
-    if (!confirm("Remove this custom shop?")) return;
-    let userAddedShops = JSON.parse(localStorage.getItem("userAddedShops")) || [];
-    userAddedShops = userAddedShops.filter(s => s.id !== shopId);
-    localStorage.setItem("userAddedShops", JSON.stringify(userAddedShops));
+    if (!confirm("Remove this shop?")) return;
+
+    if (DEFAULT_SHOP_IDS.has(shopId)) {
+        const deletedDefaultShops = JSON.parse(localStorage.getItem("deletedDefaultShops")) || [];
+        if (!deletedDefaultShops.includes(shopId)) deletedDefaultShops.push(shopId);
+        localStorage.setItem("deletedDefaultShops", JSON.stringify(deletedDefaultShops));
+    } else {
+        let userAddedShops = JSON.parse(localStorage.getItem("userAddedShops")) || [];
+        userAddedShops = userAddedShops.filter(s => s.id !== shopId);
+        localStorage.setItem("userAddedShops", JSON.stringify(userAddedShops));
+    }
+
     renderShops();
 }
 
@@ -900,5 +958,82 @@ async function shareExpensesReport() {
 }
 
 window.shareExpensesReport = shareExpensesReport;
+
+function getUserProfile() {
+    return JSON.parse(localStorage.getItem("campusPayUserProfile")) || {};
+}
+
+function loadUserProfile() {
+    const profile = getUserProfile();
+    const nameEl = document.getElementById("profileName");
+    const cityEl = document.getElementById("profileCity");
+    const stateEl = document.getElementById("profileState");
+    const countryEl = document.getElementById("profileCountry");
+    if (nameEl) nameEl.value = profile.name || "";
+    if (cityEl) cityEl.value = profile.city || "";
+    if (stateEl) stateEl.value = profile.state || "";
+    if (countryEl) countryEl.value = profile.country || "";
+}
+
+function saveUserProfile() {
+    const profile = {
+        name: (document.getElementById("profileName")?.value || "").trim(),
+        city: (document.getElementById("profileCity")?.value || "").trim(),
+        state: (document.getElementById("profileState")?.value || "").trim(),
+        country: (document.getElementById("profileCountry")?.value || "").trim()
+    };
+
+    localStorage.setItem("campusPayUserProfile", JSON.stringify(profile));
+    updateAuthUI(currentUser);
+    alert("Profile saved.");
+}
+
+window.saveUserProfile = saveUserProfile;
+
+async function submitFeedback() {
+    const payload = {
+        changes: (document.getElementById("feedbackChanges")?.value || "").trim(),
+        rating: (document.getElementById("feedbackRating")?.value || "").trim(),
+        recommend: (document.getElementById("feedbackRecommend")?.value || "").trim(),
+        userEmail: currentUser?.email || "anonymous",
+        createdAt: new Date().toISOString()
+    };
+
+    if (!payload.changes || !payload.rating || !payload.recommend) {
+        alert("Please fill all feedback fields.");
+        return;
+    }
+
+    if (window.feedbackEndpoint) {
+        try {
+            await fetch(window.feedbackEndpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            alert("Feedback submitted. Thank you.");
+            return;
+        } catch (e) {
+            console.error("Feedback endpoint failed", e);
+        }
+    }
+
+    if (firebaseDb) {
+        try {
+            await firebaseDb.collection("feedback").add(payload);
+            alert("Feedback submitted. Thank you.");
+            return;
+        } catch (e) {
+            console.error("Feedback firestore failed", e);
+        }
+    }
+
+    alert("Feedback saved locally. Backend endpoint can be connected later.");
+    const local = JSON.parse(localStorage.getItem("campusPayFeedback")) || [];
+    local.unshift(payload);
+    localStorage.setItem("campusPayFeedback", JSON.stringify(local));
+}
+
+window.submitFeedback = submitFeedback;
 
 initApp();

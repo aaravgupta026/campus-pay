@@ -10,6 +10,16 @@ window.firebaseConfig = {
     appId: "1:820978589001:web:b117402f9ec2d0a4ae0e98"
 };
 
+// Admin accounts who can access admin.html
+window.adminEmails = [
+    "aaravgupta2500@gmail.com",
+    "aaravgupta0027@gmail.com"
+];
+
+// Optional: Google Apps Script Web App endpoint for feedback -> Google Sheet/Drive flow.
+// Leave empty to store feedback in Firestore/local fallback.
+window.feedbackEndpoint = "";
+
 // // Import the functions you need from the SDKs you need
 // import { initializeApp } from "firebase/app";
 // import { getAnalytics } from "firebase/analytics";
