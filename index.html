@@ -5,13 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Campus Pay V5</title>
     <meta name="theme-color" content="#121212">
+    <link rel="icon" type="image/svg+xml" href="assets/campus-pay-icon.svg">
+    <link rel="shortcut icon" href="assets/campus-pay-icon.svg">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
     <h1>⚡ Campus Pay</h1>
     <div class="subtitle">Smart Suggestions & Dynamic IDs</div>
+
+    <div class="auth-card">
+        <div id="loggedOutView">
+            <div class="auth-title">Sync with your Google account</div>
+            <button id="googleLoginBtn" class="action-btn">Sign in with Google</button>
+        </div>
+        <div id="loggedInView" style="display:none;">
+            <div class="auth-title">Signed in</div>
+            <div class="auth-user"><strong id="userName">User</strong></div>
+            <div class="auth-user" id="userEmail">-</div>
+            <div class="auth-user auth-uid">UID: <span id="userUid">-</span></div>
+            <button class="clear-btn" onclick="signOutUser()">Sign out</button>
+        </div>
+    </div>
 
     <div class="dashboard">
         <div>
@@ -40,6 +58,7 @@
         <button class="close-scanner" onclick="closeScanner()">Cancel</button>
     </div>
 
+    <script src="firebase-config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

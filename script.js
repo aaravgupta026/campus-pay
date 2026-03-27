@@ -7,11 +7,97 @@ const defaultShopConfig = [
 
 let activeScanMode = null; // Can be 'NEW_SHOP' or a specific shop ID
 let html5QrCode = null;
+let firebaseAuth = null;
+let currentUser = null;
 
 function initApp() {
+    initFirebaseAuth();
     renderShops();
     updateDashboard();
 }
+
+function initFirebaseAuth() {
+    if (!window.firebaseConfig) {
+        console.warn("firebaseConfig not found. Create firebase-config.js to enable Google Sign-In.");
+        return;
+    }
+
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(window.firebaseConfig);
+        }
+
+        firebaseAuth = firebase.auth();
+        bindAuthEvents();
+        firebaseAuth.onAuthStateChanged(handleAuthStateChange);
+    } catch (err) {
+        console.error("Firebase init error:", err);
+    }
+}
+
+function bindAuthEvents() {
+    const loginBtn = document.getElementById("googleLoginBtn");
+    if (!loginBtn) return;
+    loginBtn.addEventListener("click", signInWithGoogle);
+}
+
+async function signInWithGoogle() {
+    if (!firebaseAuth) {
+        alert("Firebase Auth is not initialized.");
+        return;
+    }
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+
+    try {
+        await firebaseAuth.signInWithPopup(provider);
+    } catch (err) {
+        if (err && (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user")) {
+            await firebaseAuth.signInWithRedirect(provider);
+            return;
+        }
+        console.error("Google sign-in failed:", err);
+        alert("Google sign-in failed. Please try again.");
+    }
+}
+
+function handleAuthStateChange(user) {
+    currentUser = user || null;
+    updateAuthUI(currentUser);
+}
+
+function updateAuthUI(user) {
+    const loggedOutView = document.getElementById("loggedOutView");
+    const loggedInView = document.getElementById("loggedInView");
+
+    if (!loggedOutView || !loggedInView) return;
+
+    if (!user) {
+        loggedOutView.style.display = "block";
+        loggedInView.style.display = "none";
+        return;
+    }
+
+    document.getElementById("userName").textContent = user.displayName || "No display name";
+    document.getElementById("userEmail").textContent = user.email || "No email";
+    document.getElementById("userUid").textContent = user.uid || "-";
+
+    loggedOutView.style.display = "none";
+    loggedInView.style.display = "block";
+}
+
+async function signOutUser() {
+    if (!firebaseAuth) return;
+    try {
+        await firebaseAuth.signOut();
+    } catch (err) {
+        console.error("Sign-out failed:", err);
+        alert("Sign-out failed. Please try again.");
+    }
+}
+
+window.signOutUser = signOutUser;
 
 // --- Memory & Stats ---
 function getAllShops() {
