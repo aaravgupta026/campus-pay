@@ -39,6 +39,12 @@ function bindEvents() {
     const loginBtn = document.getElementById("googleLoginBtn");
     if (loginBtn) loginBtn.addEventListener("click", signInWithGoogle);
 
+    const emailSignInBtn = document.getElementById("emailSignInBtn");
+    if (emailSignInBtn) emailSignInBtn.addEventListener("click", signInWithEmailPassword);
+
+    const emailSignUpBtn = document.getElementById("emailSignUpBtn");
+    if (emailSignUpBtn) emailSignUpBtn.addEventListener("click", signUpWithEmailPassword);
+
     const monthSelect = document.getElementById("monthSelect");
     if (monthSelect) monthSelect.addEventListener("change", updateAnalyticsFromSelection);
 }
@@ -68,6 +74,17 @@ function initFirebase() {
         if (!firebase.apps.length) firebase.initializeApp(window.firebaseConfig);
         firebaseAuth = firebase.auth();
         firebaseDb = firebase.firestore();
+
+        firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .catch(err => console.error("Auth persistence failed:", err));
+
+        firebaseAuth.getRedirectResult()
+            .then(() => {})
+            .catch(err => {
+                console.error("Redirect sign-in failed:", err);
+                setAuthHint(`Redirect sign-in failed: ${err.code || "unknown"}`);
+            });
+
         firebaseAuth.onAuthStateChanged(handleAuthStateChange);
         setAuthHint("Firebase Auth is connected.");
     } catch (err) {
@@ -106,11 +123,68 @@ async function signInWithGoogle() {
     }
 }
 
+function getEmailPasswordInput() {
+    const emailEl = document.getElementById("emailInput");
+    const passEl = document.getElementById("passwordInput");
+    const email = emailEl ? emailEl.value.trim() : "";
+    const password = passEl ? passEl.value : "";
+    return { email, password };
+}
+
+async function signInWithEmailPassword() {
+    if (!firebaseAuth) {
+        alert("Auth is not ready yet.");
+        return;
+    }
+
+    const { email, password } = getEmailPasswordInput();
+    if (!email || !password) {
+        alert("Enter both email and password.");
+        return;
+    }
+
+    try {
+        await firebaseAuth.signInWithEmailAndPassword(email, password);
+        setAuthHint("Signed in with email/password.");
+    } catch (err) {
+        console.error("Email sign-in failed:", err);
+        alert(`Email sign-in failed: ${err.code || "unknown"}`);
+    }
+}
+
+async function signUpWithEmailPassword() {
+    if (!firebaseAuth) {
+        alert("Auth is not ready yet.");
+        return;
+    }
+
+    const { email, password } = getEmailPasswordInput();
+    if (!email || !password) {
+        alert("Enter both email and password.");
+        return;
+    }
+
+    if (password.length < 6) {
+        alert("Password should be at least 6 characters.");
+        return;
+    }
+
+    try {
+        await firebaseAuth.createUserWithEmailAndPassword(email, password);
+        setAuthHint("Account created successfully.");
+    } catch (err) {
+        console.error("Email sign-up failed:", err);
+        alert(`Email sign-up failed: ${err.code || "unknown"}`);
+    }
+}
+
 async function handleAuthStateChange(user) {
     currentUser = user || null;
     updateAuthUI(currentUser);
 
     if (!currentUser || !firebaseDb) return;
+
+    setAuthHint(`Signed in as ${currentUser.email || currentUser.displayName || "user"}`);
 
     await syncLocalExpensesToCloud();
     await loadCloudExpenses();
@@ -405,14 +479,22 @@ function saveExpense(expenseItem) {
 async function saveExpenseToCloud(expenseItem) {
     if (!currentUser || !firebaseDb || !expenseItem?.localId) return;
     try {
+        const payload = { ...expenseItem, userId: currentUser.uid };
         await firebaseDb
             .collection("users")
             .doc(currentUser.uid)
             .collection("expenses")
             .doc(expenseItem.localId)
-            .set(expenseItem, { merge: true });
+            .set(payload, { merge: true });
+
+        // Fallback for rule sets that use a top-level expenses collection.
+        await firebaseDb
+            .collection("expenses")
+            .doc(`${currentUser.uid}_${expenseItem.localId}`)
+            .set(payload, { merge: true });
     } catch (err) {
         console.error("Cloud save failed:", err);
+        setAuthHint(`Cloud save failed: ${err.code || "unknown"}`);
     }
 }
 
@@ -423,15 +505,23 @@ async function syncLocalExpensesToCloud() {
         const history = getExpenseHistory();
         for (const item of history) {
             if (!item.localId) continue;
+            const payload = { ...item, userId: currentUser.uid };
+
             await firebaseDb
                 .collection("users")
                 .doc(currentUser.uid)
                 .collection("expenses")
                 .doc(item.localId)
-                .set(item, { merge: true });
+                .set(payload, { merge: true });
+
+            await firebaseDb
+                .collection("expenses")
+                .doc(`${currentUser.uid}_${item.localId}`)
+                .set(payload, { merge: true });
         }
     } catch (err) {
         console.error("Cloud sync failed:", err);
+        setAuthHint(`Cloud sync failed: ${err.code || "unknown"}`);
     } finally {
         cloudSyncInProgress = false;
     }
@@ -448,7 +538,18 @@ async function loadCloudExpenses() {
             .limit(500)
             .get();
 
-        const cloudItems = snap.docs.map(d => d.data());
+        let cloudItems = snap.docs.map(d => d.data());
+
+        if (!cloudItems.length) {
+            const fallbackSnap = await firebaseDb
+                .collection("expenses")
+                .where("userId", "==", currentUser.uid)
+                .get();
+
+            cloudItems = fallbackSnap.docs.map(d => d.data())
+                .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+        }
+
         if (!cloudItems.length) return;
 
         setExpenseHistory(cloudItems);

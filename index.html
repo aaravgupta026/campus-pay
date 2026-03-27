@@ -39,6 +39,17 @@
         <div id="loggedOutView">
             <div class="auth-title">Sync with your Google account</div>
             <button id="googleLoginBtn" class="action-btn">Sign in with Google</button>
+            <div class="auth-divider">or use email/password</div>
+            <div class="auth-form-row">
+                <input id="emailInput" class="auth-input" type="email" placeholder="Email address">
+            </div>
+            <div class="auth-form-row">
+                <input id="passwordInput" class="auth-input" type="password" placeholder="Password">
+            </div>
+            <div class="auth-form-actions">
+                <button id="emailSignInBtn" class="action-btn" type="button">Sign in</button>
+                <button id="emailSignUpBtn" class="action-btn" type="button">Create account</button>
+            </div>
         </div>
         <div id="loggedInView" style="display:none;">
             <div class="auth-title">Signed in</div>
