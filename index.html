@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Campus Pay V5</title>
+    <meta name="theme-color" content="#121212">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <h1>⚡ Campus Pay</h1>
+    <div class="subtitle">Smart Suggestions & Dynamic IDs</div>
+
+    <div class="dashboard">
+        <div>
+            <div class="stat-label">Total Spent Overall</div>
+            <div class="stat-value" id="totalSpent">₹0</div>
+        </div>
+        <button class="clear-btn" onclick="clearHistory()">Reset All</button>
+    </div>
+
+    <div id="shopsContainer"></div>
+    
+    <button class="add-shop-btn" onclick="openScanner('NEW_SHOP')">➕ Add New Shop</button>
+
+    <div class="history-list">
+        <div style="color: #03dac6; margin-bottom: 8px; font-weight: bold; font-size: 14px;">Recent Spends</div>
+        <div id="historyContainer"></div>
+    </div>
+
+    <div id="scanner-modal">
+        <h3 id="scanner-title" style="color: white; margin-bottom: 20px;">Scan QR Code</h3>
+        <div id="reader"></div>
+        <button class="close-scanner" onclick="closeScanner()">Cancel</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
