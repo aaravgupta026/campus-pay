@@ -2,11 +2,11 @@ const UPI_APPS = {
     phonepe: { label: "PhonePe", prefix: "phonepe://pay" },
     gpay: { label: "GPay", prefix: "tez://upi/pay" },
     paytm: { label: "Paytm", prefix: "paytmmp://pay" },
-    navi: { label: "Navi", prefix: "upi://pay" },
-    amazonpay: { label: "Amazon Pay", prefix: "upi://pay" },
-    samsungwallet: { label: "Samsung Wallet", prefix: "upi://pay" },
-    mobikwik: { label: "MobiKwik", prefix: "upi://pay" },
-    yonosbi: { label: "YONO SBI", prefix: "upi://pay" }
+    navi: { label: "Navi", prefix: "upi://pay", generic: true },
+    amazonpay: { label: "Amazon Pay", prefix: "upi://pay", generic: true },
+    samsungwallet: { label: "Samsung Wallet", prefix: "upi://pay", generic: true },
+    mobikwik: { label: "MobiKwik", prefix: "upi://pay", generic: true },
+    yonosbi: { label: "YONO SBI", prefix: "upi://pay", generic: true }
 };
 
 const SHOP_LOCATIONS = {
@@ -90,7 +90,7 @@ function initFirebase() {
             });
 
         firebaseAuth.onAuthStateChanged(handleAuthStateChange);
-        setAuthHint("Firebase Auth is connected.");
+        setAuthHint("");
     } catch (err) {
         console.error("Firebase init error:", err);
         setAuthHint("Firebase initialization failed. Re-check firebase-config.js values.");
@@ -107,12 +107,7 @@ async function signInWithGoogle() {
     provider.setCustomParameters({ prompt: "select_account" });
 
     try {
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (isMobile) {
-            await firebaseAuth.signInWithRedirect(provider);
-        } else {
-            await firebaseAuth.signInWithPopup(provider);
-        }
+        await firebaseAuth.signInWithPopup(provider);
     } catch (err) {
         console.error("Google sign-in failed:", err);
         if (err.code === "auth/unauthorized-domain") {
@@ -123,7 +118,7 @@ async function signInWithGoogle() {
             await firebaseAuth.signInWithRedirect(provider);
             return;
         }
-        alert("Google sign-in failed. Check firebase-config.js and authorized domains.");
+        alert(`Google sign-in failed: ${err.code || "unknown"}`);
     }
 }
 
@@ -186,9 +181,11 @@ async function handleAuthStateChange(user) {
     currentUser = user || null;
     updateAuthUI(currentUser);
 
-    if (!currentUser || !firebaseDb) return;
+    if (!currentUser || !firebaseDb) {
+        return;
+    }
 
-    setAuthHint(`Signed in as ${currentUser.email || currentUser.displayName || "user"}`);
+    setAuthHint("");
 
     await syncLocalExpensesToCloud();
     await loadCloudExpenses();
@@ -453,6 +450,12 @@ function pay(shopId, amount) {
 
     const expense = makeExpenseItem(shop.name, numericAmount, appKey);
     saveExpense(expense);
+
+    // For generic UPI handlers, Android may show a chooser or open-with prompt.
+    if (appMeta.generic && localStorage.getItem("genericUpiTipSeen") !== "1") {
+        alert("This app uses generic UPI open. Android may ask once or twice to choose/open the UPI app. This is expected behavior.");
+        localStorage.setItem("genericUpiTipSeen", "1");
+    }
 
     const url = `${appMeta.prefix}?pa=${upiId}&pn=${encodeURIComponent(shop.name)}&am=${numericAmount}&cu=INR`;
     setTimeout(() => { window.location.href = url; }, 100);

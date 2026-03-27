@@ -21,6 +21,16 @@
 2. Firestore writes may fail if rules do not match collection path.
 3. Vercel may show old build if deploy not finished or cached.
 4. Dual Firestore path writes exist temporarily and should be normalized after final rules decision.
+5. GitHub secret alert triggered for Firebase API key commit. Firebase web API keys are public by design, but key restrictions and rotation are still required.
+
+## Immediate Security Actions (Must Do)
+1. Rotate the exposed Google API key in Google Cloud Console.
+2. Restrict new key by HTTP referrer:
+   - `https://campus-pay-v1.vercel.app/*`
+   - localhost for development
+3. Restrict enabled APIs to only Firebase-related APIs used by this app.
+4. Update `firebase-config.js` with rotated key.
+5. Push and redeploy.
 
 ## Architecture Decision (Now)
 1. Do not remove Firebase immediately.
