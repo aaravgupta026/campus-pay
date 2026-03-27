@@ -1,11 +1,19 @@
-# Campus Pay Backend (Firebase) README
+# Campus Pay Backend (Google Cloud) README
 
 ## Backend Model
-Backend is serverless using Firebase services:
-- Firebase Authentication
-- Cloud Firestore
+Backend is serverless on Google Cloud using Firebase-managed services right now:
+- Firebase Authentication (Google Cloud Identity layer)
+- Cloud Firestore (Google Cloud NoSQL)
 
 No custom backend server is present in this repo.
+
+## Architecture Point (Important)
+Firebase is already part of Google Cloud. So using Firebase Auth + Firestore means the app is already running on Google Cloud services.
+
+The recommended path is:
+1. Keep Firebase Auth + Firestore for stability now.
+2. Manage project-level settings from `console.cloud.google.com` where needed.
+3. Optionally migrate selected backend logic later to Cloud Run/API Gateway/Cloud Functions.
 
 ## Firebase Config File
 - `firebase-config.js` contains web app Firebase keys.
@@ -25,6 +33,18 @@ Compatibility fallback path:
 
 ## Why two paths are used
 Different Firestore rules setups were used during testing. App writes to both so data is visible even if one rules style blocks writes.
+
+## Google Cloud Console Usage
+Use `console.cloud.google.com` for:
+- Project IAM/roles
+- Billing and quotas
+- Firestore database visibility under Google Cloud resources
+- Logging and monitoring (Cloud Logging)
+
+Use Firebase Console for:
+- Authentication provider toggles (Google, Email/Password)
+- Firestore rules quick management
+- Web app SDK config keys
 
 ## Recommended Firestore Rules
 Use this safe version during development:
@@ -50,6 +70,13 @@ The screenshot error `Unable to forward your request to a backend` on Cloud Shel
 
 This project is static frontend and does not require Cloud Shell port forwarding.
 Use Vercel deployment (or Firebase Hosting) instead.
+
+## Optional Future Migration (If You Want Less Firebase SDK)
+1. Keep frontend static on Vercel.
+2. Add Cloud Run API for expense writes/reads.
+3. Verify Google identity token in backend.
+4. Move Firestore access from browser to backend service account.
+5. Keep only login on frontend and call backend APIs.
 
 ## Vercel Notes
 - Repo: `aaravgupta026/campus-pay`

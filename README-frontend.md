@@ -25,7 +25,7 @@ Campus Pay is a static web app frontend for quick UPI payments, spend tracking, 
 - Email/password sign-in and account creation
 - Sign-out
 - Greeting with user name
-- UPI app selection per shop
+- UPI app selection per shop (PhonePe, GPay, Paytm, Navi, Amazon Pay, Samsung Wallet, MobiKwik, YONO SBI)
 - Update QR and optional instant pay flow
 - Shop-level reset and invalid QR reporting
 - Location-based ordering with fallback to most-used ordering
@@ -40,3 +40,4 @@ Campus Pay is a static web app frontend for quick UPI payments, spend tracking, 
 - Browser localStorage is used as primary local cache.
 - Firestore sync is used when user is authenticated.
 - Keep Firebase script versions aligned in `index.html`.
+- Current code uses Firebase Web SDK, but this runs on Google Cloud infrastructure. Migration plan to deeper Google Cloud services is documented in `README-backend.md` and `README-project-status.md`.

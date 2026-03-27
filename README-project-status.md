@@ -13,11 +13,20 @@
 10. Geolocation sorting integrated with fallback ordering.
 11. Month and year analytics + CSV exports implemented.
 12. Firestore sync logic implemented for authenticated users.
+13. Email/password auth added in UI and logic.
+14. Extended UPI app list includes Amazon Pay, Samsung Wallet, MobiKwik, and YONO SBI.
 
 ## Current Known Risk / Debug Focus
 1. Sign-in may complete but UI not updating if stale deployment/browser cache is used.
 2. Firestore writes may fail if rules do not match collection path.
 3. Vercel may show old build if deploy not finished or cached.
+4. Dual Firestore path writes exist temporarily and should be normalized after final rules decision.
+
+## Architecture Decision (Now)
+1. Do not remove Firebase immediately.
+2. Firebase Auth + Firestore are already Google Cloud services and currently the fastest stable path.
+3. Use Google Cloud Console for project governance and monitoring.
+4. Plan optional migration of data APIs to Cloud Run in a later phase.
 
 ## Immediate Verification Checklist
 1. Confirm latest Vercel deployment commit hash equals latest GitHub commit.
@@ -37,6 +46,7 @@
 4. Add monthly/yearly dashboard charts.
 5. Add report filter by shop and app.
 6. Add cloud backup/restore for custom shops and app preferences.
+7. Optional phase: Cloud Run API layer with verified Google identity token.
 
 ## Important Workflow Rule for New Chat
 Before deleting or refactoring anything:

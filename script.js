@@ -2,7 +2,11 @@ const UPI_APPS = {
     phonepe: { label: "PhonePe", prefix: "phonepe://pay" },
     gpay: { label: "GPay", prefix: "tez://upi/pay" },
     paytm: { label: "Paytm", prefix: "paytmmp://pay" },
-    navi: { label: "Navi", prefix: "upi://pay" }
+    navi: { label: "Navi", prefix: "upi://pay" },
+    amazonpay: { label: "Amazon Pay", prefix: "upi://pay" },
+    samsungwallet: { label: "Samsung Wallet", prefix: "upi://pay" },
+    mobikwik: { label: "MobiKwik", prefix: "upi://pay" },
+    yonosbi: { label: "YONO SBI", prefix: "upi://pay" }
 };
 
 const SHOP_LOCATIONS = {
