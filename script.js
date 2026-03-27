@@ -5,6 +5,13 @@ const UPI_APPS = {
     navi: { label: "Navi", prefix: "upi://pay" }
 };
 
+const SHOP_LOCATIONS = {
+    ravechi: { lat: 23.0225, lng: 72.5714 },
+    lafresco: { lat: 23.0235, lng: 72.5720 },
+    yewale: { lat: 23.0219, lng: 72.5702 },
+    amul: { lat: 23.0244, lng: 72.5734 }
+};
+
 const defaultShopConfig = [
     { id: "ravechi", name: "Ravechi", defaultUpi: "9724399962@okbizaxis", defaultApp: "phonepe", defaultAmts: [10, 20, 30] },
     { id: "lafresco", name: "La Fresco", defaultUpi: "paytmqr6clwnr@ptys", defaultApp: "gpay", defaultAmts: [20, 30, 50] },
@@ -15,11 +22,14 @@ const defaultShopConfig = [
 let activeScanMode = null;
 let html5QrCode = null;
 let firebaseAuth = null;
+let firebaseDb = null;
 let currentUser = null;
+let userLocation = null;
+let cloudSyncInProgress = false;
 
 function initApp() {
     bindEvents();
-    initFirebaseAuth();
+    initFirebase();
     renderShops();
     updateDashboard();
     renderAnalytics();
@@ -38,12 +48,17 @@ function setAuthHint(msg) {
     if (hint) hint.textContent = msg || "";
 }
 
+function setLocationHint(msg) {
+    const hint = document.getElementById("locationHint");
+    if (hint) hint.textContent = msg || "";
+}
+
 function isFirebaseConfigReady(config) {
     if (!config) return false;
     return !Object.values(config).some(val => String(val).includes("REPLACE_WITH_"));
 }
 
-function initFirebaseAuth() {
+function initFirebase() {
     if (!window.firebaseConfig || !isFirebaseConfigReady(window.firebaseConfig)) {
         setAuthHint("Google Sign-In is disabled. Open firebase-config.js and paste your real Firebase values.");
         return;
@@ -52,6 +67,7 @@ function initFirebaseAuth() {
     try {
         if (!firebase.apps.length) firebase.initializeApp(window.firebaseConfig);
         firebaseAuth = firebase.auth();
+        firebaseDb = firebase.firestore();
         firebaseAuth.onAuthStateChanged(handleAuthStateChange);
         setAuthHint("Firebase Auth is connected.");
     } catch (err) {
@@ -90,25 +106,36 @@ async function signInWithGoogle() {
     }
 }
 
-function handleAuthStateChange(user) {
+async function handleAuthStateChange(user) {
     currentUser = user || null;
     updateAuthUI(currentUser);
+
+    if (!currentUser || !firebaseDb) return;
+
+    await syncLocalExpensesToCloud();
+    await loadCloudExpenses();
 }
 
 function updateAuthUI(user) {
     const loggedOutView = document.getElementById("loggedOutView");
     const loggedInView = document.getElementById("loggedInView");
+    const helloBanner = document.getElementById("helloBanner");
+
     if (!loggedOutView || !loggedInView) return;
 
     if (!user) {
         loggedOutView.style.display = "block";
         loggedInView.style.display = "none";
+        if (helloBanner) helloBanner.textContent = "Hello, User";
         return;
     }
 
-    document.getElementById("userName").textContent = user.displayName || "No display name";
+    const displayName = user.displayName || "User";
+    document.getElementById("userName").textContent = displayName;
     document.getElementById("userEmail").textContent = user.email || "No email";
     document.getElementById("userUid").textContent = user.uid || "-";
+    if (helloBanner) helloBanner.textContent = `Hello, ${displayName.split(" ")[0]}`;
+
     loggedOutView.style.display = "none";
     loggedInView.style.display = "block";
 }
@@ -124,6 +151,29 @@ async function signOutUser() {
 }
 
 window.signOutUser = signOutUser;
+
+function requestLocation() {
+    if (!navigator.geolocation) {
+        setLocationHint("Geolocation not available on this browser. Using most-used shop order.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setLocationHint("Location enabled. Nearest shops are now shown first.");
+            renderShops();
+        },
+        () => {
+            userLocation = null;
+            setLocationHint("Location denied. Using most-used shops first.");
+            renderShops();
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+}
+
+window.requestLocation = requestLocation;
 
 function getExpenseHistory() {
     return JSON.parse(localStorage.getItem("campusExpenses")) || [];
@@ -209,8 +259,29 @@ function getPreferredAppKeyForShop(shop) {
     return "phonepe";
 }
 
+function toRad(val) {
+    return (val * Math.PI) / 180;
+}
+
+function getDistanceKm(a, b) {
+    const R = 6371;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const x = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+    return R * c;
+}
+
 function sortShopsForDisplay(shops) {
     return shops.sort((a, b) => {
+        if (userLocation && SHOP_LOCATIONS[a.id] && SHOP_LOCATIONS[b.id]) {
+            const distA = getDistanceKm(userLocation, SHOP_LOCATIONS[a.id]);
+            const distB = getDistanceKm(userLocation, SHOP_LOCATIONS[b.id]);
+            if (Math.abs(distA - distB) > 0.05) return distA - distB;
+        }
+
         const aStats = getShopStats(a.name, a.defaultAmts);
         const bStats = getShopStats(b.name, b.defaultAmts);
         if (bStats.usageCount !== aStats.usageCount) return bStats.usageCount - aStats.usageCount;
@@ -279,6 +350,20 @@ function changeUpiApp(shopId, appKey) {
     renderShops();
 }
 
+window.changeUpiApp = changeUpiApp;
+
+function makeExpenseItem(shopName, amount, appKey) {
+    const now = new Date();
+    return {
+        localId: `${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+        shop: shopName,
+        amt: Number(amount),
+        app: appKey || "phonepe",
+        time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        createdAt: now.toISOString()
+    };
+}
+
 function pay(shopId, amount) {
     const shop = getShopById(shopId);
     if (!shop) return;
@@ -288,10 +373,14 @@ function pay(shopId, amount) {
     const upiId = getUpiId(shop.id, shop.defaultUpi);
     const numericAmount = parseFloat(amount);
 
-    saveExpense(shop.name, numericAmount, appKey);
+    const expense = makeExpenseItem(shop.name, numericAmount, appKey);
+    saveExpense(expense);
+
     const url = `${appMeta.prefix}?pa=${upiId}&pn=${encodeURIComponent(shop.name)}&am=${numericAmount}&cu=INR`;
     setTimeout(() => { window.location.href = url; }, 100);
 }
+
+window.pay = pay;
 
 function payCustom(shopId) {
     const shop = getShopById(shopId);
@@ -300,24 +389,76 @@ function payCustom(shopId) {
     if (amount && !isNaN(amount) && Number(amount) > 0) pay(shop.id, Number(amount));
 }
 
-function saveExpense(shopName, amount, appKey) {
+window.payCustom = payCustom;
+
+function saveExpense(expenseItem) {
     const history = getExpenseHistory();
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    history.unshift({
-        shop: shopName,
-        amt: Number(amount),
-        app: appKey || "phonepe",
-        time: timeStr,
-        createdAt: now.toISOString()
-    });
-
-    if (history.length > 400) history.pop();
+    history.unshift(expenseItem);
+    if (history.length > 500) history.pop();
     setExpenseHistory(history);
     renderShops();
     updateDashboard();
     renderAnalytics();
+    saveExpenseToCloud(expenseItem);
+}
+
+async function saveExpenseToCloud(expenseItem) {
+    if (!currentUser || !firebaseDb || !expenseItem?.localId) return;
+    try {
+        await firebaseDb
+            .collection("users")
+            .doc(currentUser.uid)
+            .collection("expenses")
+            .doc(expenseItem.localId)
+            .set(expenseItem, { merge: true });
+    } catch (err) {
+        console.error("Cloud save failed:", err);
+    }
+}
+
+async function syncLocalExpensesToCloud() {
+    if (!currentUser || !firebaseDb || cloudSyncInProgress) return;
+    cloudSyncInProgress = true;
+    try {
+        const history = getExpenseHistory();
+        for (const item of history) {
+            if (!item.localId) continue;
+            await firebaseDb
+                .collection("users")
+                .doc(currentUser.uid)
+                .collection("expenses")
+                .doc(item.localId)
+                .set(item, { merge: true });
+        }
+    } catch (err) {
+        console.error("Cloud sync failed:", err);
+    } finally {
+        cloudSyncInProgress = false;
+    }
+}
+
+async function loadCloudExpenses() {
+    if (!currentUser || !firebaseDb) return;
+    try {
+        const snap = await firebaseDb
+            .collection("users")
+            .doc(currentUser.uid)
+            .collection("expenses")
+            .orderBy("createdAt", "desc")
+            .limit(500)
+            .get();
+
+        const cloudItems = snap.docs.map(d => d.data());
+        if (!cloudItems.length) return;
+
+        setExpenseHistory(cloudItems);
+        renderShops();
+        updateDashboard();
+        renderAnalytics();
+    } catch (err) {
+        console.error("Cloud load failed:", err);
+        setAuthHint("Signed in, but cloud fetch failed. Check Firestore rules/index.");
+    }
 }
 
 function openScanner(mode) {
@@ -329,6 +470,8 @@ function openScanner(mode) {
     html5QrCode.start({ facingMode: "environment" }, { fps: 5, qrbox: { width: 250, height: 250 } }, onScanSuccess)
         .catch(() => { alert("Camera error or permission denied."); closeScanner(); });
 }
+
+window.openScanner = openScanner;
 
 function onScanSuccess(decodedText) {
     const match = decodedText.match(/pa=([^&]+)/);
@@ -379,6 +522,8 @@ function closeScanner() {
     html5QrCode.stop().then(() => html5QrCode.clear()).catch(e => console.log(e));
 }
 
+window.closeScanner = closeScanner;
+
 function deleteShop(shopId) {
     if (!confirm("Remove this custom shop?")) return;
     let userAddedShops = JSON.parse(localStorage.getItem("userAddedShops")) || [];
@@ -387,6 +532,8 @@ function deleteShop(shopId) {
     renderShops();
 }
 
+window.deleteShop = deleteShop;
+
 function resetShopHistory(shopName) {
     if (!confirm(`Reset spending history for ${shopName}?`)) return;
     const history = getExpenseHistory().filter(item => item.shop !== shopName);
@@ -394,7 +541,10 @@ function resetShopHistory(shopName) {
     renderShops();
     updateDashboard();
     renderAnalytics();
+    syncLocalExpensesToCloud();
 }
+
+window.resetShopHistory = resetShopHistory;
 
 function reportInvalidQr(shopId) {
     const reports = getInvalidReports();
@@ -404,6 +554,8 @@ function reportInvalidQr(shopId) {
     alert("Thanks. QR issue report saved.");
     renderShops();
 }
+
+window.reportInvalidQr = reportInvalidQr;
 
 function updateDashboard() {
     const history = getExpenseHistory();
@@ -428,7 +580,10 @@ function clearHistory() {
     renderShops();
     updateDashboard();
     renderAnalytics();
+    syncLocalExpensesToCloud();
 }
+
+window.clearHistory = clearHistory;
 
 function getMonthKey(dateObj) {
     const y = dateObj.getFullYear();
@@ -440,6 +595,11 @@ function formatMonthLabel(monthKey) {
     const [year, month] = monthKey.split("-");
     const d = new Date(Number(year), Number(month) - 1, 1);
     return d.toLocaleString([], { month: "long", year: "numeric" });
+}
+
+function getSelectedMonthKey() {
+    const monthSelect = document.getElementById("monthSelect");
+    return monthSelect ? monthSelect.value : "";
 }
 
 function renderAnalytics() {
@@ -454,6 +614,7 @@ function renderAnalytics() {
         monthTotals[key] = (monthTotals[key] || 0) + parseFloat(item.amt || 0);
     });
 
+    const selectedBefore = monthSelect.value;
     const keys = Object.keys(monthTotals).sort((a, b) => b.localeCompare(a));
     monthSelect.innerHTML = "";
 
@@ -474,13 +635,13 @@ function renderAnalytics() {
         monthSelect.appendChild(opt);
     });
 
+    monthSelect.value = keys.includes(selectedBefore) ? selectedBefore : keys[0];
     updateAnalyticsFromSelection();
 }
 
 function updateAnalyticsFromSelection() {
     const history = getExpenseHistory();
-    const monthSelect = document.getElementById("monthSelect");
-    const selectedMonth = monthSelect ? monthSelect.value : "";
+    const selectedMonth = getSelectedMonthKey();
     if (!selectedMonth) return;
 
     let monthTotal = 0;
@@ -501,6 +662,22 @@ function updateAnalyticsFromSelection() {
     document.getElementById("yearSpent").textContent = `₹${yearTotal.toFixed(0)}`;
 }
 
+function toCSV(rows) {
+    return rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\n");
+}
+
+function downloadCSV(fileName, csvText) {
+    const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
 function buildExpensesCSV(history) {
     const rows = [["Shop", "Amount", "Time", "Date", "UPI App"]];
     history.forEach(item => {
@@ -512,10 +689,7 @@ function buildExpensesCSV(history) {
             UPI_APPS[item.app]?.label || "UPI"
         ]);
     });
-
-    return rows
-        .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(","))
-        .join("\n");
+    return toCSV(rows);
 }
 
 function exportExpensesCSV() {
@@ -524,20 +698,56 @@ function exportExpensesCSV() {
         alert("No expenses to export yet.");
         return;
     }
-
-    const csv = buildExpensesCSV(history);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
     const today = new Date().toISOString().slice(0, 10);
-
-    link.href = url;
-    link.download = `campus-pay-expenses-${today}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadCSV(`campus-pay-expenses-${today}.csv`, buildExpensesCSV(history));
 }
+
+window.exportExpensesCSV = exportExpensesCSV;
+
+function exportSelectedMonthCSV() {
+    const history = getExpenseHistory();
+    const selectedMonth = getSelectedMonthKey();
+    if (!selectedMonth) {
+        alert("No month selected.");
+        return;
+    }
+
+    const selectedRows = history.filter(item => {
+        const dt = item.createdAt ? new Date(item.createdAt) : new Date();
+        return getMonthKey(dt) === selectedMonth;
+    });
+
+    if (!selectedRows.length) {
+        alert("No data available for selected month.");
+        return;
+    }
+
+    const label = selectedMonth.replace("-", "_");
+    downloadCSV(`campus-pay-month-${label}.csv`, buildExpensesCSV(selectedRows));
+}
+
+window.exportSelectedMonthCSV = exportSelectedMonthCSV;
+
+function exportYearSummaryReport() {
+    const history = getExpenseHistory();
+    if (!history.length) {
+        alert("No expenses to export yet.");
+        return;
+    }
+
+    const yearlyTotals = {};
+    history.forEach(item => {
+        const dt = item.createdAt ? new Date(item.createdAt) : new Date();
+        const y = String(dt.getFullYear());
+        yearlyTotals[y] = (yearlyTotals[y] || 0) + parseFloat(item.amt || 0);
+    });
+
+    const rows = [["Year", "Total Spent"]];
+    Object.keys(yearlyTotals).sort().forEach(year => rows.push([year, yearlyTotals[year].toFixed(2)]));
+    downloadCSV("campus-pay-year-summary.csv", toCSV(rows));
+}
+
+window.exportYearSummaryReport = exportYearSummaryReport;
 
 async function shareExpensesReport() {
     const history = getExpenseHistory();
@@ -580,5 +790,7 @@ async function shareExpensesReport() {
 
     window.prompt("Copy and share this report:", report);
 }
+
+window.shareExpensesReport = shareExpensesReport;
 
 initApp();

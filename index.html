@@ -11,6 +11,7 @@
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -19,7 +20,20 @@
         <img src="assets/campus-pay-brand.svg" alt="Campus Pay Logo" class="brand-logo">
         <h1>Campus Pay</h1>
     </div>
-    <div class="subtitle">Smart Suggestions & Dynamic IDs</div>
+    <div class="subtitle">Fast payments first, smart tracking below</div>
+
+    <div id="helloBanner" class="hello-banner">Hello, User</div>
+
+    <div class="location-card">
+        <button class="action-btn" onclick="requestLocation()">Enable Location</button>
+        <div id="locationHint" class="location-hint">If allowed, nearest shop comes first. If denied, most-used shops stay first.</div>
+    </div>
+
+    <div class="payment-section">
+        <div class="section-title">Pay at Shop</div>
+        <div id="shopsContainer"></div>
+        <button class="add-shop-btn" onclick="openScanner('NEW_SHOP')">Add New Shop</button>
+    </div>
 
     <div class="auth-card">
         <div id="loggedOutView">
@@ -63,11 +77,11 @@
                 <div class="stat-value" id="yearSpent">₹0</div>
             </div>
         </div>
+        <div class="analytics-actions">
+            <button class="action-btn" onclick="exportSelectedMonthCSV()">Export Selected Month</button>
+            <button class="action-btn" onclick="exportYearSummaryReport()">Export Year Summary</button>
+        </div>
     </div>
-
-    <div id="shopsContainer"></div>
-    
-    <button class="add-shop-btn" onclick="openScanner('NEW_SHOP')">➕ Add New Shop</button>
 
     <div class="history-list">
         <div style="color: #03dac6; margin-bottom: 8px; font-weight: bold; font-size: 14px;">Recent Spends</div>

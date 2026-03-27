@@ -3,6 +3,11 @@ body { font-family: -apple-system, sans-serif; background-color: #121212; color:
 .brand-logo { width: 34px; height: 34px; border-radius: 8px; border: 1px solid #2f2f2f; }
 h1 { color: #03dac6; margin-top: 5px; margin-bottom: 5px; font-size: 24px; }
 .subtitle { color: #888; font-size: 12px; margin-bottom: 15px; }
+.hello-banner { background: #1a3a37; color: #c6fff8; border: 1px solid #2f5a56; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 14px; font-weight: 600; }
+.location-card { background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 10px; margin-bottom: 12px; }
+.location-hint { color: #9ea9a8; font-size: 11px; margin-top: 8px; line-height: 1.4; }
+.payment-section { margin-bottom: 14px; }
+.section-title { color: #03dac6; font-size: 13px; margin-bottom: 8px; font-weight: 600; }
 
 .auth-card { background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
 .auth-title { color: #ccc; font-size: 12px; margin-bottom: 8px; }
@@ -22,6 +27,7 @@ h1 { color: #03dac6; margin-top: 5px; margin-bottom: 5px; font-size: 24px; }
 .month-select { background: #2a2a2a; color: #f0f0f0; border: 1px solid #3a3a3a; border-radius: 6px; padding: 5px 8px; font-size: 12px; }
 .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .analytics-item { background: #222; border: 1px solid #323232; border-radius: 8px; padding: 8px; }
+.analytics-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 
 .shop-card { background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #333; }
 .shop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 16px; font-weight: bold; }
@@ -53,4 +59,5 @@ h1 { color: #03dac6; margin-top: 5px; margin-bottom: 5px; font-size: 24px; }
 @media (max-width: 640px) {
 	.dashboard { flex-direction: column; align-items: flex-start; gap: 10px; }
 	.analytics-grid { grid-template-columns: 1fr; }
+	.analytics-actions { flex-direction: column; }
 }
