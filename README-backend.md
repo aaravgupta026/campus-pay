@@ -16,8 +16,10 @@ The recommended path is:
 3. Optionally migrate selected backend logic later to Cloud Run/API Gateway/Cloud Functions.
 
 ## Firebase Config File
-- `firebase-config.js` contains web app Firebase keys.
-- This file is loaded directly by `index.html`.
+- `firebase-config.example.js` is committed as a safe template.
+- Create your local `firebase-config.js` from the example and fill real values.
+- `firebase-config.js` is intentionally gitignored to prevent secret leaks.
+- Runtime still loads `firebase-config.js` from `index.html` and `admin.html`.
 
 ## Authentication Providers
 Enabled and expected:
