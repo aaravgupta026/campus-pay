@@ -41,3 +41,4 @@ Campus Pay is a static web app frontend for quick UPI payments, spend tracking, 
 - Firestore sync is used when user is authenticated.
 - Keep Firebase script versions aligned in `index.html`.
 - Current code uses Firebase Web SDK, but this runs on Google Cloud infrastructure. Migration plan to deeper Google Cloud services is documented in `README-backend.md` and `README-project-status.md`.
+- Default shop UPI IDs in this repository are sample presets for demo flow only. Users must always confirm receiver name and UPI ID in their payment app before final payment.

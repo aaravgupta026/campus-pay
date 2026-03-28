@@ -16,6 +16,7 @@ const SHOP_LOCATIONS = {
     amul: { lat: 23.0244, lng: 72.5734 }
 };
 
+// Default UPI IDs below are sample/demo presets. Users must verify payee details in their UPI app before final payment.
 const defaultShopConfig = [
     { id: "ravechi", name: "Ravechi", defaultUpi: "9724399962@okbizaxis", defaultApp: "phonepe", defaultAmts: [10, 20, 30] },
     { id: "lafresco", name: "La Fresco", defaultUpi: "paytmqr6clwnr@ptys", defaultApp: "gpay", defaultAmts: [20, 30, 50] },
